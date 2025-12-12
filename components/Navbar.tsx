@@ -27,7 +27,7 @@ const Navbar = () => {
 				{/* Desktop Navigation and mobile menu */}
 				<div className="flex items-center justify-between h-20">
 					<Link href="/" className="text-2xl font-bold text-white">
-						PDFtooAI
+						PDFtoolAI
 					</Link>
 					<div className="hidden md:flex items-center space-x-4">
 						<Link
