@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { CheckCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -42,8 +43,15 @@ const DashboardContent = () => {
 	// TODO: formatSummaryContent function
 
 	return (
-		<div className="space-y-10 max-w-4xl mx-auto bg-green-200">
-			DashboardContent
+		<div className="space-y-10 max-w-4xl mx-auto">
+			{!showPaymentSuccess && (
+				<div className="bg-green-500/10 max-w-xl mx-auto border border-green-500/20 rounded-xl p-4 my-8 text-green-400">
+					<div className="flex items-center justify-center">
+						<CheckCircle className="h-5 w-5 mr-2" />
+						<p>Payment successfull! Your subscription is now active!</p>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
