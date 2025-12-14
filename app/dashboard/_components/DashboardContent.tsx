@@ -1,9 +1,10 @@
 "use client";
 
+import { extractTextFromPDF } from "@/lib/pdfUtils";
 import { useUser } from "@clerk/nextjs";
 import { AlertCircle, CheckCircle, FileText } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 const DashboardContent = () => {
 	const { user, isLoaded } = useUser();
@@ -39,7 +40,31 @@ const DashboardContent = () => {
 
 		setSelectedFile(e.target.files[0]);
 	};
+
 	// TODO: handleAnalyze function
+	const handleAnalyze = async () => {
+		if (!selectedFile) {
+			setError("Please select a file before analyzing");
+			return;
+		}
+		setIsLoading(true);
+		setError("");
+		setSummary("");
+
+		try {
+			// TODO: extract text from PDF file
+			const text = await extractTextFromPDF(selectedFile);
+
+			setSummary(text);
+			// TODO: send the text to API for analysis
+			const res = "";
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to analyze PDF");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
 	// TODO: formatSummaryContent function
 
 	return (
@@ -63,6 +88,7 @@ const DashboardContent = () => {
 					</div>
 					<div className="border border-gray-700 rounded-xl p-1 bg-black/40 hover:border-purple-200/20 transition-colors">
 						<input
+							onChange={handleFileChange}
 							type="file"
 							accept=".pdf"
 							className="block w-full text-gray-300 file:mr-4
@@ -73,6 +99,7 @@ const DashboardContent = () => {
 				</div>
 				{/* Analyze Button - disable when no file selected or during loading */}
 				<button
+					onClick={handleAnalyze}
 					disabled={!selectedFile || isLoading}
 					className="group relative inline-flex items-center justify-center w-full gap-2 rounded-xl bg-black p-4 text-white transition-all hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
@@ -96,7 +123,7 @@ const DashboardContent = () => {
 				</div>
 			)}
 			{/* Summary results */}
-			{!summary && (
+			{summary && (
 				<div className="bg-black/20 shadow-[0_4px_20px_-10px] shadow-purple-200/30 rounded-2xl p-8 border border-[#2a2a35]">
 					<div className="flex items-center mb-6">
 						<div className="mr-3 p-2 rounded-full bg-linear-to-br from-purple-500/20 to-pink-500/20">
@@ -104,7 +131,9 @@ const DashboardContent = () => {
 						</div>
 					</div>
 					{/* Formatted summary content */}
-					<div className="max-w-none px-6 py-5 rounded-xl bg-[#0f0f13] border border-[#2a2a35]"></div>
+					<div className="max-w-none px-6 py-5 rounded-xl bg-[#0f0f13] border border-[#2a2a35]">
+						{summary}
+					</div>
 				</div>
 			)}
 		</div>
