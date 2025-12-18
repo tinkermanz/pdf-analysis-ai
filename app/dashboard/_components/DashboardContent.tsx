@@ -52,12 +52,26 @@ const DashboardContent = () => {
 		setSummary("");
 
 		try {
-			// TODO: extract text from PDF file
 			const text = await extractTextFromPDF(selectedFile);
 
-			setSummary(text);
-			// TODO: send the text to API for analysis
-			const res = "";
+			const response = await fetch("/api/analyze", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+				},
+				body: JSON.stringify({ text: text.substring(0, 10000) }),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => {});
+				throw new Error(
+					errorData.error || `HTTP error! status: ${response.status}`
+				);
+			}
+
+			const data = await response.json();
+			setSummary(data.summary || "No summary was generated");
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to analyze PDF");
 		} finally {
@@ -66,6 +80,39 @@ const DashboardContent = () => {
 	};
 
 	// TODO: formatSummaryContent function
+	const formatSummaryContent = (text: string) => {
+		const paragraphs = text.split("\n").filter((p) => p.trim() !== "");
+		return paragraphs.map((paragraph, idx) => {
+			if (paragraph.startsWith("# ")) {
+				return (
+					<h2
+						key={idx}
+						className="text-2xl font-bold mt-6 mb-4 bg-linear-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent"
+					>
+						{paragraph.replace(/^#/, "")}
+					</h2>
+				);
+			}
+			if (paragraph.startsWith("## ")) {
+				return (
+					<h3
+						key={idx}
+						className="text-xl font-semibold mt-6 mb-3 text-purple-300 border-b border-purple-500/20 pb-2"
+					>
+						{paragraph.replace(/^## /, "")}
+					</h3>
+				);
+			}
+			return (
+				<p
+					key={idx}
+					className="mb-4 text-gray-300 leading-relaxed hover::text-white transition-colors first-letter:text-lg first-letter:font-medium"
+				>
+					{paragraph}
+				</p>
+			);
+		});
+	};
 
 	return (
 		<div className="space-y-10 mt-24 max-w-4xl mx-auto">
@@ -132,7 +179,7 @@ const DashboardContent = () => {
 					</div>
 					{/* Formatted summary content */}
 					<div className="max-w-none px-6 py-5 rounded-xl bg-[#0f0f13] border border-[#2a2a35]">
-						{summary}
+						{formatSummaryContent(summary)}
 					</div>
 				</div>
 			)}
