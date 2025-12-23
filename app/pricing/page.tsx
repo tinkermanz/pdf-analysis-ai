@@ -92,7 +92,7 @@ export default async function Pricing() {
 		}
 	}
 
-	async function createCustomerPortal(params: type) {
+	async function createCustomerPortal() {
 		"use server";
 		if (!authCheck.userId) {
 			return redirect("sign-in/redirect_url=/pricing");
@@ -137,13 +137,13 @@ export default async function Pricing() {
 							</p>
 							<ul className="space-y-2 text-white/70 py-4">
 								<li className="flex items-center">
-									<span className="mr-2">&check;</span> Unlimited PDF processing
+									<span className="mr-2"> ✓</span> Unlimited PDF processing
 								</li>
 								<li className="flex items-center">
-									<span className="mr-2">&check;</span> Advanced AI analysis
+									<span className="mr-2"> ✓</span> Advanced AI analysis
 								</li>
 								<li className="flex items-center">
-									<span className="mr-2">&check;</span> Priority support
+									<span className="mr-2"> ✓</span> Priority support
 								</li>
 							</ul>
 							<div className="pt-4">
