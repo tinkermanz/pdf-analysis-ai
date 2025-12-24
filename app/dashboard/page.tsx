@@ -6,7 +6,7 @@ export default async function Dashboard() {
 	const { redirectedTo } = await checkAuthenticationAndSubscription();
 
 	if (redirectedTo) {
-		return <RedirectComponent to={redirectedTo} />;
+		return <RedirectComponent to={redirectedTo || "/"} />;
 	}
 
 	return <DashboardContent />;

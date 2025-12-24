@@ -1,5 +1,3 @@
-"use client";
-
 import { PDF_PROCESSING } from "./constants";
 import { getDocument, GlobalWorkerOptions, version } from "pdfjs-dist";
 import type { TextContent } from "pdfjs-dist/types/src/display/api";
