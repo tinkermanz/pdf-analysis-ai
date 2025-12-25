@@ -1,13 +1,14 @@
-import { checkAuthenticationAndSubscription } from "@/lib/checkAuthSubscription";
-import DashboardContent from "./_components/DashboardContent";
 import { RedirectComponent } from "@/components/RedirectComponent";
+import DashboardContent from "./_components/DashboardContent";
+import { checkAuthenticationAndSubscription } from "@/lib/checkAuthSubscription";
 
 export default async function Dashboard() {
-	const { redirectedTo } = await checkAuthenticationAndSubscription();
+	const authCheck = await checkAuthenticationAndSubscription().catch(
+		() => null
+	);
 
-	if (redirectedTo) {
-		return <RedirectComponent to={redirectedTo || "/"} />;
+	if (!authCheck || authCheck.redirectedTo) {
+		return <RedirectComponent to={authCheck?.redirectedTo ?? "/"} />;
 	}
-
 	return <DashboardContent />;
 }

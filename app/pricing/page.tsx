@@ -1,11 +1,11 @@
-import ButtonGlowing from "@/components/landingPage/ButtonGlowing";
-import { checkAuthenticationAndSubscription } from "@/lib/checkAuthSubscription";
 import prisma from "@/lib/prisma";
 import { getStripeSession, stripe } from "@/lib/stripe";
-import { currentUser } from "@clerk/nextjs/server";
 import { unstable_noStore } from "next/cache";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
+import Link from "next/link";
+import { checkAuthenticationAndSubscription } from "@/lib/checkAuthSubscription";
+import ButtonGlowing from "@/components/landingPage/ButtonGlowing";
 
 async function getData(userId: string | null) {
 	unstable_noStore();
@@ -13,14 +13,12 @@ async function getData(userId: string | null) {
 	if (!userId) return null;
 
 	const subscription = await prisma.subscription.findUnique({
-		where: { userId },
+		where: {
+			userId: userId,
+		},
 		select: {
 			status: true,
-			user: {
-				select: {
-					stripeCustomerId: true,
-				},
-			},
+			user: { select: { stripeCustomerId: true } },
 		},
 	});
 
@@ -28,9 +26,12 @@ async function getData(userId: string | null) {
 }
 
 export default async function Pricing() {
+	// Check authentication status without redirecting
 	const authCheck = await checkAuthenticationAndSubscription();
 
 	const user = authCheck.isAuthenticated ? await currentUser() : null;
+
+	// Get subscription data if authenticated
 	const subscription = authCheck.isAuthenticated
 		? await getData(authCheck.userId)
 		: null;
@@ -39,63 +40,71 @@ export default async function Pricing() {
 
 	async function createSubscription() {
 		"use server";
-		if (!authCheck) {
+
+		if (!authCheck.userId) {
 			return redirect("/sign-in?redirect_url=/pricing");
 		}
 
 		let databaseUser = await prisma.user.findUnique({
-			where: { id: authCheck.userId! },
+			where: {
+				id: authCheck.userId,
+			},
 			select: {
 				stripeCustomerId: true,
 			},
 		});
 
 		if (!databaseUser) {
-			throw new Error(`DatabaseUser not found`);
+			throw new Error("DatabaseUser Not Found");
 		}
 
 		const email = user?.primaryEmailAddress?.emailAddress;
+
 		if (!databaseUser.stripeCustomerId) {
 			const customer = await stripe.customers.create({
-				email,
+				email: email,
 			});
 
 			databaseUser = await prisma.user.update({
-				where: { id: authCheck.userId! },
+				where: {
+					id: authCheck.userId,
+				},
 				data: {
 					stripeCustomerId: customer.id,
 				},
 				select: { stripeCustomerId: true },
 			});
-
-			if (!databaseUser.stripeCustomerId) {
-				throw new Error(`Failed to set stripeCustomerId for the user`);
-			}
-
-			const domainUrl =
-				process.env.NEXT_PUBLIC_URL ||
-				(process.env.NODE_ENV === "production"
-					? process.env.PRODUCTION_URL
-					: "http://localhost:3000");
-			if (!domainUrl) {
-				throw new Error(`Missing domain URL configuration`);
-			}
-
-			const subscriptionUrl = await getStripeSession({
-				customerId: databaseUser.stripeCustomerId,
-				domainUrl,
-				priceId: process.env.STRIPE_PRICE_ID as string,
-				successUrl: `${domainUrl}/dashboard?payment=success`,
-			});
-
-			return redirect(subscriptionUrl);
 		}
+
+		if (!databaseUser.stripeCustomerId) {
+			throw new Error("Failed to set stripeCustomerId for the user");
+		}
+
+		const domainUrl =
+			process.env.NEXT_PUBLIC_URL ||
+			(process.env.NODE_ENV === "production"
+				? process.env.PRODUCTION_URL
+				: "http://localhost:3000");
+
+		if (!domainUrl) {
+			throw new Error("Missing domain URL configuration");
+		}
+
+		const subscriptionUrl = await getStripeSession({
+			customerId: databaseUser.stripeCustomerId,
+			domainUrl: domainUrl,
+			priceId: process.env.STRIPE_PRICE_ID as string,
+			successUrl: `${domainUrl}/dashboard?payment=success`,
+		});
+
+		return redirect(subscriptionUrl);
 	}
 
 	async function createCustomerPortal() {
 		"use server";
+
 		if (!authCheck.userId) {
-			return redirect("sign-in/redirect_url=/pricing");
+			return redirect("sign-in?redirect_url=/pricing");
 		}
 
 		const customerPortalUrl = await stripe.billingPortal.sessions.create({
@@ -103,7 +112,7 @@ export default async function Pricing() {
 			return_url:
 				process.env.NODE_ENV === "production"
 					? (process.env.PRODUCTION_URL as string)
-					: `http://localhost:3000`,
+					: "http://localhost:3000",
 		});
 
 		return redirect(customerPortalUrl.url);
@@ -116,36 +125,46 @@ export default async function Pricing() {
 			<div className="max-w-4xl mx-auto">
 				<Link
 					href={backLink}
-					className="text-white/70 hover:text-white inline-flex items-center mb-8 transition-all duration-300 hover:rounded-md px-4 py-2"
+					className="text-white/70 hover:text-white inline-flex items-center mb-8 transition-all duration-300 
+                                    hover:shadow-[0_2px_8px_0] hover:shadow-purple-400/40 hover:rounded-md px-4 py-2"
 				>
-					{" "}
 					&larr; Back
 				</Link>
-				<h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-12 bg-clip-text text-transparent bg-linear-to-r from-white to-purple-200">
+
+				<h1
+					className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-12 bg-clip-text text-transparent 
+                                bg-linear-to-r from-white to-purple-200"
+				>
 					Subscription Plan
 				</h1>
 
-				<div className="rounded-xl border border-b-purple-300/10 bg-black/30 shadow-[0_8px_30px_-12px] shadow-purple-500/20 p-8 backdrop-blur-sm">
+				<div
+					className="rounded-xl border border-purple-300/10 bg-black/30 shadow-[0_8px_30px_-12px]
+                                 shadow-purple-500/20 p-8 backdrop-blur-sm"
+				>
 					<div className="space-y-6">
 						<h2 className="text-3xl font-semibold tracking-tight border-b border-purple-300/20 pb-4">
 							Full Access
 						</h2>
+
 						<div className="space-y-4">
-							<p className="text-white/80 text-lg">Access to all</p>
+							<p className="text-white/80 text-lg">Access to all features</p>
 							<p className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-white to-purple-200">
-								$4.00/month
+								$19.99/year
 							</p>
+
 							<ul className="space-y-2 text-white/70 py-4">
 								<li className="flex items-center">
-									<span className="mr-2"> ✓</span> Unlimited PDF processing
+									<span className="mr-2">✓</span> Unlimited PDF processing
 								</li>
 								<li className="flex items-center">
-									<span className="mr-2"> ✓</span> Advanced AI analysis
+									<span className="mr-2">✓</span> Advanced AI analysis
 								</li>
 								<li className="flex items-center">
-									<span className="mr-2"> ✓</span> Priority support
+									<span className="mr-2">✓</span> Priority support
 								</li>
 							</ul>
+
 							<div className="pt-4">
 								{authCheck.isAuthenticated ? (
 									isSubscribed ? (
@@ -184,7 +203,7 @@ export default async function Pricing() {
 									)
 								) : (
 									<ButtonGlowing
-										text="Sign in to Subscribe"
+										text="Sign In to Subscribe"
 										href="/sign-in?redirect_url=/pricing"
 									/>
 								)}
